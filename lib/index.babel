@@ -1,0 +1,92 @@
+const convLLN = (a, rad = 500.0) => {
+  var lat = a[0],
+    lon = a[1];
+  var cosLat = Math.cos(lat * Math.PI / 180.0);
+  var sinLat = Math.sin(lat * Math.PI / 180.0);
+  var cosLon = Math.cos(lon * Math.PI / 180.0);
+  var sinLon = Math.sin(lon * Math.PI / 180.0);
+  return {
+    x: rad * cosLat * cosLon,
+    y: rad * cosLat * sinLon,
+    z: rad * sinLat
+  };
+};
+
+const link =
+  "https://raw.githubusercontent.com/idris-maps/map-of-europe/master/data/cities.json";
+
+let cubes = [];
+axios.get(link).then(e=>{
+  cubes = e.data.features.map(e=>(convLLN(e.geometry.coordinates, 100)));
+  cubes = cubes.map(e=> addCube(e));
+  init(cubes);
+})
+
+function addCube(coords) {
+  //const {x,y,z} = convLLN(coords);
+  var geometry = new THREE.BoxGeometry(1, 1, 1);
+  var material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  var cube = new THREE.Mesh(geometry, material);
+  cube.position.x = coords.x;
+  cube.position.y = coords.y;
+  cube.position.z = coords.z;
+  return cube;
+}
+
+function init(cub) {
+  var radius = 6371;
+			var tilt = 0.41;
+			var rotationSpeed = 0.02;
+
+			var cloudsScale = 1.005;
+			var moonScale = 0.23;
+
+			var MARGIN = 0;
+			var SCREEN_HEIGHT = window.innerHeight - MARGIN * 2;
+			var SCREEN_WIDTH  = window.innerWidth;
+  ////////
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
+
+  var renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, 480); // window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  //var geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+  //var material = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  //var cube = new THREE.Mesh(geometry, material);
+  //scene.add(cube);
+
+  camera.position.z = 120;
+  
+  for(var i in cub){
+    scene.add(cub[i]);
+  }
+
+  //scene.add(addCube({ x: 0, y: 1, z: 1 }));
+  
+  var constant = 10, 
+      target = cub[0],
+      //{
+      //  position: {x:0,y:0,z:0}
+      //},
+      radius = 2,elapsedTime=0;
+
+  var animate = function() {
+    elapsedTime+=.001;
+    requestAnimationFrame(animate);
+    //cube.rotation.x += 0.01;
+    //cube.rotation.y += 0.01;
+    camera.position.x = target.position.x + radius * Math.cos( constant * elapsedTime );         
+camera.position.z = target.position.z + radius * Math.sin( constant * elapsedTime );
+camera.lookAt( target.position );
+    renderer.render(scene, camera);
+  };
+
+  animate();
+}
